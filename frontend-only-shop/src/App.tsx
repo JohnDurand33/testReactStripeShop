@@ -7,6 +7,7 @@ import './index.css'
 import Message from './Message'
 
 const STRIPE_API_KEY = import.meta.env.VITE_STRIPE_API_KEY
+const BACKEND_URL= import.meta.env.VITE_BACKEND_URL
 
 const App: React.FC = () =>{
     const [products, setProducts] = useState([])
@@ -132,7 +133,7 @@ const App: React.FC = () =>{
                         )
                         }
             {showCart()}
-            <form method="POST" action='http://127.0.0.1:5000/api/checkout'>
+            <form method="POST" action = {BACKEND_URL + '/api/checkout'}>
                 {generateInputTags()}
                 <button type="submit">Check Out</button>
             </form>
