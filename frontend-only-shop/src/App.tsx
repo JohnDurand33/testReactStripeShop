@@ -4,6 +4,7 @@ import {ProductType, UserType, CartType} from './types'
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { getDatabase, ref, set, child, get } from 'firebase/database'
 import './index.css'
+import Message from './Message'
 
 const STRIPE_API_KEY = import.meta.env.VITE_STRIPE_API_KEY
 
@@ -11,6 +12,8 @@ const App: React.FC = () =>{
     const [products, setProducts] = useState([])
     const [user, setUser] = useState({} as UserType)
     const [cart, setCart] = useState({} as CartType)
+    const [message, setMessage] = useState('')
+    const [color, setColor] = useState('')
     
     const getCart = async (user) => {
         if (user.id) {
@@ -23,14 +26,33 @@ const App: React.FC = () =>{
             }
         }
     };
-    useEffect(() => {getCart(user)}, [user])
+    useEffect(() => { getCart(user) }, [user])
+    useEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        if (query.get("success")) {
+            setMessage("Order placed! You will receive an email confirmation.");
+            setColor("green");
+            setCart({});
+        }
+
+        if (query.get("canceled")) {
+            setMessage(
+                "Order canceled -- continue to shop around and checkout when you're ready.");
+            setColor('danger')
+        }
+    }, []);
+
+    const resetMessage = () => {
+        setMessage(null)
+        setColor(null)
+    }
 
     const addtoDB = (cart) => {
         const db = getDatabase();
         set(ref(db, `/carts/${user.id}`), cart)
     };
 
-    const addToCart = (item: ProductType) => {
+    const addToCart = (item: ProductType) => {    // Travis, Ryan HELP
         const copy = { ...cart }
         if (item.id in cart) {
             if (copy[item.id]) {
@@ -56,7 +78,7 @@ const App: React.FC = () =>{
         };
         const res = await fetch(url, options);
         const data = await res.json();
-        console.log(data)
+        console.log(`get products data -> ${data}`)
         console.log(res.status)
         if (res.status === 200) {
             setProducts(data.data)
@@ -75,6 +97,10 @@ const App: React.FC = () =>{
         return Object.keys(cart).map((key: string, index: number) => <p key={index}>{cart[key].name} x {cart[key].qty}</p>)
     }
 
+    const generateInputTags = () => {
+        return Object.keys(cart).map((key: string, index: number) => <input key={`input_${index}`} name={cart[key].default_price} defaultValue={cart[key].qty} hidden/>)
+    };
+
     const createPopup = async () => {
         const auth = getAuth();
         const provider = new GoogleAuthProvider();
@@ -88,20 +114,29 @@ const App: React.FC = () =>{
             name: user.displayName??''
         }
         setUser(myUser)
+        localStorage.setItem('user', JSON.stringify(myUser))
     };
 
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }} >
-                <h1>My Shop</h1>
+    return (
+            
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }} >
+            {message ? <Message message={message} color={color} resetMessage={resetMessage} /> : ''}
                 <main>
+                    <h1>My Shop</h1>
+                </main>
                     {showProducts()}
-                </main>{
+                {
                     user.id ?
-                        (<h1>Logged in as: <span><img style={{ width: '20px'}} src={user.imgUrl}></img></span> {user.name}</h1> ):(
+                            (<h3>Logged in as: <span><img style={{ width: '20px'}} src={user.imgUrl}></img></span> {user.name}</h3> ):(
                         <button onClick={createPopup} >Sign In With Google</button>
                         )
-                }
-                {showCart()}
+                        }
+            {showCart()}
+            <form method="POST" action='http://127.0.0.1:5000/api/checkout'>
+                {generateInputTags()}
+                <button type="submit">Check Out</button>
+            </form>
+
             </div>
         )
     }

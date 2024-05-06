@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProductType } from './types';
 import './index.css'
 
-const STRIPE_API_KEY = import.meta.env.VITE_STRIPE_API_KEY
+const STRIPE_API_KEY = import.meta.env.VITE_STRIPE_API_KEY;
 
 const Product: React.FC<{ product: ProductType; addToCart: (item: ProductType) => void }> = ({ product, addToCart }) => {
 
